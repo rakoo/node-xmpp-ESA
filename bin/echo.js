@@ -4,17 +4,12 @@
 var xmpp = require('../node_modules/node-xmpp');
 var argv = process.argv;
 
-if (argv.length != 6) {
-      console.error('Usage: node echo_bot.js <my-jid> <my-password> <host> <port>');
-      process.exit(1);
-}
-
 var cl = new xmpp.Component(
   { 
-    jid: argv[2],
-    password: argv[3],
-    host: argv[4],
-    port: argv[5]
+    jid:  "exp.otokar.looc2011.eu",
+    password: "password",
+    host: "localhost",
+    port: "5347"
   });
 
   cl.on('online', function() {
@@ -22,14 +17,27 @@ var cl = new xmpp.Component(
 });
 
 cl.on('stanza', function(stanza) {
-  if (stanza.is('message') && stanza.attrs.type !== 'error') {
+  console.log("; received stanza from " + stanza.from);
 
-    // Swap addresses...
-    var me = stanza.attrs.to;
-    stanza.attrs.to = stanza.attrs.from;
-    stanza.attrs.from = me;
-    // and send back.
-    cl.send(stanza);
+  // parse iq gets for me
+  if (stanza.is('iq') && stanza.attrs.type == 'get' && stanza.attrs.to == cl.jid) {
+
+    // query : info
+    var query = stanza.getChild('query', 'http://jabber.org/protocol/disco#info');
+    if (typeof query !== 'undefined' && query.attrs) {
+      console.log(";    stanza is iq get disco#info");
+      var result = new xmpp.Element('iq', {
+        type: 'result', 
+        from: cl.jid, 
+        to: stanza.from, 
+        id:stanza.id
+      }).
+        c('query').attr('xmlns', 'http://jabber.org/protocol/disco#info').
+        c('feature').attr('var', 'http://jabber.org/protocol/address').up();
+
+        cl.send(result);
+    }
+
   }
 });
 
